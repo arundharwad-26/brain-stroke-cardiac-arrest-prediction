@@ -1,51 +1,64 @@
 # predict.py
 import pickle
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-
-from preprocessing import preprocess_data
-from data_loader import load_data
 
 
 def load_model():
-    with open("models/best_model.pkl", "rb") as file:
-        model = pickle.load(file)
-    return model
+    with open("models/model_and_scaler.pkl", "rb") as file:
+        data = pickle.load(file)
+    return data["model"], data["scaler"]
 
 
 def predict_risk(input_data):
-    model = load_model()
+    model, scaler = load_model()
 
-    # Convert input to array
     input_array = np.array(input_data).reshape(1, -1)
+    input_array = scaler.transform(input_array)
 
-    # IMPORTANT: scale input the same way as training
-    scaler = StandardScaler()
-    input_array = scaler.fit_transform(input_array)
+    probability = model.predict_proba(input_array)[0][1]
 
-    prediction = model.predict(input_array)[0]
-
-    if prediction == 0:
-        return "LOW RISK"
+    if probability < 0.30:
+        return f"LOW RISK (Probability: {probability:.2f})"
+    elif probability < 0.60:
+        return f"MEDIUM RISK (Probability: {probability:.2f})"
     else:
-        return "HIGH RISK"
+        return f"HIGH RISK (Probability: {probability:.2f})"
+
+
+# -------------------------
+# Safe input handling
+# -------------------------
+def safe_int(prompt):
+    try:
+        return int(input(prompt))
+    except:
+        print("Invalid input! Please enter a number.")
+        return safe_int(prompt)
+
+
+def safe_float(prompt):
+    try:
+        return float(input(prompt))
+    except:
+        print("Invalid input! Please enter a valid number.")
+        return safe_float(prompt)
 
 
 if __name__ == "__main__":
-    print("\n🩺 Stroke & Cardiac Risk Prediction System\n")
+    print("\n==============================")
+    print("🩺 Stroke & Cardiac Risk Prediction System")
+    print("==============================\n")
 
-    print("Enter patient details:")
-
-    gender = int(input("Gender (0 = Female, 1 = Male): "))
-    age = float(input("Age: "))
-    hypertension = int(input("Hypertension (0 = No, 1 = Yes): "))
-    heart_disease = int(input("Heart Disease (0 = No, 1 = Yes): "))
-    ever_married = int(input("Ever Married (0 = No, 1 = Yes): "))
-    work_type = int(input("Work Type (0–4): "))
-    residence_type = int(input("Residence Type (0 = Rural, 1 = Urban): "))
-    avg_glucose = float(input("Average Glucose Level: "))
-    bmi = float(input("BMI: "))
-    smoking_status = int(input("Smoking Status (0–3): "))
+    gender = safe_int("Gender (0 = Female, 1 = Male): ")
+    age = safe_float("Age: ")
+    hypertension = safe_int("Hypertension (0 = No, 1 = Yes): ")
+    heart_disease = safe_int("Heart Disease (0 = No, 1 = Yes): ")
+    ever_married = safe_int("Ever Married (0 = No, 1 = Yes): ")
+    work_type = safe_int("Work Type (0–4): ")
+    residence_type = safe_int("Residence Type (0 = Rural, 1 = Urban): ")
+    avg_glucose = safe_float("Average Glucose Level: ")
+    bmi = safe_float("BMI: ")
+    smoking_status = safe_int("Smoking Status (0–3): ")
 
     user_input = [
         gender,
@@ -63,4 +76,4 @@ if __name__ == "__main__":
     result = predict_risk(user_input)
 
     print("\n🧠 Prediction Result:")
-    print(f"👉 Patient is at **{result}**")
+    print(f"👉 Risk Level: {result}")
